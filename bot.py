@@ -6,7 +6,13 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from yt_dlp import YoutubeDL
 
-# --- وب‌سرور برای زنده نگه داشتن ربات در رندر ---
+# ذخیره کوکی در صورت وجود در تنظیمات رندر
+COOKIE_DATA = os.environ.get("YOUTUBE_COOKIES", "")
+if COOKIE_DATA:
+    with open("cookies.txt", "w", encoding="utf-8") as f:
+        f.write(COOKIE_DATA)
+
+# وب‌سرور برای زنده نگه داشتن سرور در رندر
 web_app = Flask(__name__)
 
 
@@ -22,7 +28,7 @@ def run_web():
 
 threading.Thread(target=run_web, daemon=True).start()
 
-# --- تنظیمات تلگرام ---
+# دریافت مشخصات تلگرام
 API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
@@ -32,10 +38,7 @@ app = Client("downloader_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_T
 
 @app.on_message(filters.command("start"))
 async def start_cmd(client: Client, message: Message):
-    await message.reply_text(
-        "👋 سلام!\n"
-        "لینک ویدیو از یوتیوب، اینستاگرام یا ... رو بفرست تا برات دانلودش کنم."
-    )
+    await message.reply_text("👋 سلام! لینک ویدیو رو بفرست تا برات دانلود کنم.")
 
 
 @app.on_message(filters.text & ~filters.command(["start"]))
@@ -46,22 +49,18 @@ async def download_video(client: Client, message: Message):
         await message.reply_text("❌ لطفاً یک لینک معتبر بفرستید.")
         return
 
-    status = await message.reply_text("⏳ در حال دریافت و پردازش ویدیو...")
+    status = await message.reply_text("⏳ در حال دریافت و دانلود ویدیو...")
 
-    # تنظیمات اختصاصی همراه با دور زدن آنتی‌بات
     ydl_opts = {
         "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
         "outtmpl": "downloads/%(id)s.%(ext)s",
         "merge_output_format": "mp4",
         "quiet": True,
-        # اتصال به سرور محلی برای گرفتن توکن یوتیوب
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["web", "mweb"],
-                "getpot_bgutil_baseurl": ["http://127.0.0.1:4416"],
-            }
-        },
     }
+
+    # اگر کوکی وجود داشت از آن استفاده کن
+    if os.path.exists("cookies.txt"):
+        ydl_opts["cookiefile"] = "cookies.txt"
 
     try:
         os.makedirs("downloads", exist_ok=True)
@@ -88,7 +87,6 @@ async def download_video(client: Client, message: Message):
 
         await status.delete()
 
-        # حذف فایل از سرور جهت جلوگیری از پر شدن حافظه
         if os.path.exists(file_path):
             os.remove(file_path)
 
