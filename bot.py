@@ -48,11 +48,20 @@ async def download_video(client: Client, message: Message):
 
     status = await message.reply_text("⏳ در حال دریافت و دانلود ویدیو...")
 
-    ydl_opts = {
+        ydl_opts = {
         "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
         "outtmpl": "downloads/%(id)s.%(ext)s",
         "merge_output_format": "mp4",
         "quiet": True,
+        # تنظیمات حیاتی برای دور زدن آنتی‌بات یوتیوب:
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "ios"],
+            }
+        },
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
     }
 
     try:
