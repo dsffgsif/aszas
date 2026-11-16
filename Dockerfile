@@ -1,16 +1,17 @@
 FROM python:3.10-slim
 
-# نصب ابزارهای مورد نیاز: ffmpeg، نودجی‌اس و گیت
+# نصب ابزارهای پایه و اضافه کردن مخزن رسمی Node.js 22
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    nodejs \
-    npm \
     git \
+    curl \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# نصب و کامپایل ابزار رسمی تولید توکن یوتیوب
+# دانلود و کامپایل پلاگین توکن با نودجی‌اس ۲۲
 RUN git clone --depth=1 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git /opt/bgutil && \
     cd /opt/bgutil/server && \
     npm install && \
@@ -24,7 +25,7 @@ COPY . .
 
 EXPOSE 8080
 
-# ساخت اسکریپت استارت برای اجرای همزمان سرور توکن و ربات
+# اسکریپت اجرای همزمان سرور توکن و ربات
 RUN printf '#!/bin/bash\nnode /opt/bgutil/server/build/main.js --port 4416 &\nsleep 3\nexec python bot.py\n' > /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
