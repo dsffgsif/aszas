@@ -22,7 +22,7 @@ def run_web():
 
 threading.Thread(target=run_web, daemon=True).start()
 
-# --- تنظیمات تلگرام (از متغیرهای محیطی خوانده می‌شود) ---
+# --- تنظیمات تلگرام ---
 API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
@@ -34,7 +34,7 @@ app = Client("downloader_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_T
 async def start_cmd(client: Client, message: Message):
     await message.reply_text(
         "👋 سلام!\n"
-        "لینک ویدیو از یوتیوب، اینستاگرام یا تیک‌تاک رو برام بفرست تا برات دانلودش کنم."
+        "لینک ویدیو از یوتیوب، اینستاگرام یا ... رو بفرست تا برات دانلودش کنم."
     )
 
 
@@ -46,21 +46,20 @@ async def download_video(client: Client, message: Message):
         await message.reply_text("❌ لطفاً یک لینک معتبر بفرستید.")
         return
 
-    status = await message.reply_text("⏳ در حال دریافت و دانلود ویدیو...")
+    status = await message.reply_text("⏳ در حال دریافت و پردازش ویدیو...")
 
-        ydl_opts = {
+    # تنظیمات اختصاصی همراه با دور زدن آنتی‌بات
+    ydl_opts = {
         "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
         "outtmpl": "downloads/%(id)s.%(ext)s",
         "merge_output_format": "mp4",
         "quiet": True,
-        # تنظیمات حیاتی برای دور زدن آنتی‌بات یوتیوب:
+        # اتصال به سرور محلی برای گرفتن توکن یوتیوب
         "extractor_args": {
             "youtube": {
-                "player_client": ["android", "ios"],
+                "player_client": ["web", "mweb"],
+                "getpot_bgutil_baseurl": ["http://127.0.0.1:4416"],
             }
-        },
-        "http_headers": {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         },
     }
 
@@ -77,7 +76,7 @@ async def download_video(client: Client, message: Message):
             title = info.get("title", "ویدیو")
             duration = int(info.get("duration", 0))
 
-        await status.edit_text("📤 در حال آپلود به تلگرام...")
+        await status.edit_text("📤 دانلود تمام شد. در حال آپلود به تلگرام...")
 
         await client.send_video(
             chat_id=message.chat.id,
@@ -89,7 +88,7 @@ async def download_video(client: Client, message: Message):
 
         await status.delete()
 
-        # پاک کردن فایل از هاست
+        # حذف فایل از سرور جهت جلوگیری از پر شدن حافظه
         if os.path.exists(file_path):
             os.remove(file_path)
 
